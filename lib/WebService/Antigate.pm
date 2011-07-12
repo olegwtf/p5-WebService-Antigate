@@ -450,6 +450,7 @@ This method tries to upload captcha image to the service. Here you can use the f
    calc            0            1 if that digits on the captcha should be summed up
    min_len         0            minimum length of the captcha text (0..20)
    max_len         0            maximum length of the captcha text (0..20), 0 - no limits
+   is_russian      0            1 - russian text only, 2 - russian or english, 0 - does not matter
    
 You must specify either `file' option or `content'. Other options are facultative. If you want to upload captcha from variable
 (`content' option) instead from file you must specify the name of the file with `name' option. Otherwise $WebService::Antigate::FNAME
