@@ -508,7 +508,7 @@ L<LWP::UserAgent>
 
 =head1 COPYRIGHT
 
-Copyright 2010 Oleg G <oleg@cpan.org>.
+Copyright 2010-2011 Oleg G <oleg@cpan.org>.
 
 This library is free software; you can redistribute it and/or
 modify it under the same terms as Perl itself.

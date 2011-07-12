@@ -1,8 +1,13 @@
 Revision history for Perl extension WebService::Antigate.
 
-0.01  Thu Apr 20 00:35:40 2010
-      - original version;
+0.03  Tue Jul 12 12:46:43 2011
+      - more real tests added
+      - is_russian flag documented
 
 0.02  Wed Apr 21 01:14:54 2010
       - fixed documentation bugs
       - added undocumented error codes
+
+0.01  Thu Apr 20 00:35:40 2010
+      - original version;
+
