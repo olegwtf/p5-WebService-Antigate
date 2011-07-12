@@ -2,5 +2,7 @@ Changes
 Makefile.PL
 MANIFEST
 README
-t/WebService-Antigate.t
+t/1_load.t
+t/2_api.t
 lib/WebService/Antigate.pm
+
