@@ -54,7 +54,7 @@ sub new
 
 
 # generate sub's for get/set object properties using closure
-foreach my $key qw(key wait attempts ua domain delay)
+foreach my $key (qw(key wait attempts ua domain delay))
 {
       no strict 'refs';
       *$key = sub
