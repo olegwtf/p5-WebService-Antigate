@@ -6,273 +6,294 @@ use Carp ();
 
 our $VERSION = '0.03';
 
-our $DOMAIN   = 'antigate.com'; # service domain often changes because of the abuse
-our $WAIT     = 220;            # default time that recognize() or upload() can work
-our $DELAY    = 5;              # sleep time before retry while uploading or recognizing captcha
-our $FNAME    = 'captcha.jpg';  # default name of the uploaded captcha if uploading from the variable used
+our $DOMAIN = 'antigate.com'; # service domain often changes because of the abuse
+our $WAIT   = 220;        # default time that recognize() or upload() can work
+our $DELAY  = 5;          # sleep time before retry while uploading or recognizing captcha
+our $FNAME  = 'captcha.jpg';  # default name of the uploaded captcha if uploading from the variable used
 
 
 my %MESSAGES = 
 (
-      'ERROR_KEY_DOES_NOT_EXIST'       => 'wrong service key used',
-      'ERROR_WRONG_USER_KEY'           => 'wrong service key used',
-      'ERROR_NO_SLOT_AVAILABLE'        => 'all recognizers are busy, try later',
-      'ERROR_ZERO_CAPTCHA_FILESIZE'    => 'uploaded captcha size is zero',
-      'ERROR_TOO_BIG_CAPTCHA_FILESIZE' => 'uploaded captcha size is grater than 90 Kb',
-      'ERROR_WRONG_FILE_EXTENSION'     => 'wrong extension of the uploaded captcha, allowed extensions are gif, jpg, png',
-      'ERROR_IP_NOT_ALLOWED'           => 'this ip not allowed to use this account',
-      'ERROR_WRONG_ID_FORMAT'          => 'captcha id should be number',
-      'ERROR_NO_SUCH_CAPCHA_ID'        => 'no such captcha id in the database',
-      'ERROR_URL_METHOD_FORBIDDEN'     => 'this upload method is already not supported',
-      'ERROR_IMAGE_IS_NOT_PNG'         => 'captcha is not correct png file',
-      'ERROR_IMAGE_IS_NOT_JPEG'        => 'captcha is not correct jpeg file',
-      'ERROR_IMAGE_IS_NOT_GIF'         => 'captcha is not correct gif file',
-      'ERROR_ZERO_BALANCE'             => 'you have a zero balance',
-      'CAPCHA_NOT_READY'               => 'captcha is not recognized yet',
-      'OK_REPORT_RECORDED'             => 'your abuse recorded'
+    'ERROR_KEY_DOES_NOT_EXIST'       => 'wrong service key used',
+    'ERROR_WRONG_USER_KEY'           => 'wrong service key used',
+    'ERROR_NO_SLOT_AVAILABLE'        => 'all recognizers are busy, try later',
+    'ERROR_ZERO_CAPTCHA_FILESIZE'    => 'uploaded captcha size is zero',
+    'ERROR_TOO_BIG_CAPTCHA_FILESIZE' => 'uploaded captcha size is grater than 90 Kb',
+    'ERROR_WRONG_FILE_EXTENSION'     => 'wrong extension of the uploaded captcha, allowed extensions are gif, jpg, png',
+    'ERROR_IP_NOT_ALLOWED'           => 'this ip not allowed to use this account',
+    'ERROR_WRONG_ID_FORMAT'          => 'captcha id should be number',
+    'ERROR_NO_SUCH_CAPCHA_ID'        => 'no such captcha id in the database',
+    'ERROR_URL_METHOD_FORBIDDEN'     => 'this upload method is already not supported',
+    'ERROR_IMAGE_IS_NOT_PNG'         => 'captcha is not correct png file',
+    'ERROR_IMAGE_IS_NOT_JPEG'        => 'captcha is not correct jpeg file',
+    'ERROR_IMAGE_IS_NOT_GIF'         => 'captcha is not correct gif file',
+    'ERROR_ZERO_BALANCE'             => 'you have a zero balance',
+    'CAPCHA_NOT_READY'               => 'captcha is not recognized yet',
+    'OK_REPORT_RECORDED'             => 'your abuse recorded'
 );
 
 
 sub new
 {
-      my ($class, %args) = @_;
-      
-      Carp::croak "Option `key' should be specified" unless defined $args{key};
-      
-      my $self = {};
-      $self->{key}      = $args{key};
-      $self->{wait}     = $args{wait};
-      $self->{attempts} = $args{attempts};
-      $self->{ua}       = $args{ua}     || LWP::UserAgent->new();
-      $self->{domain}   = $args{domain} || $DOMAIN;
-      $self->{delay}    = $args{delay}  || $DELAY;
-      
-      $self->{wait} = $WAIT unless defined($self->{wait}) || defined($self->{attempts});
-      
-      bless($self, $class);
+    my ($class, %args) = @_;
+    
+    Carp::croak "Option `key' should be specified" unless defined $args{key};
+    
+    my $self = {};
+    $self->{key}    = $args{key};
+    $self->{wait}     = $args{wait};
+    $self->{attempts} = $args{attempts};
+    $self->{ua}     = $args{ua}     || LWP::UserAgent->new();
+    $self->{domain}   = $args{domain} || $DOMAIN;
+    $self->{delay}    = $args{delay}  || $DELAY;
+    
+    $self->{wait} = $WAIT unless defined($self->{wait}) || defined($self->{attempts});
+    
+    bless($self, $class);
 }
 
 
 # generate sub's for get/set object properties using closure
 foreach my $key (qw(key wait attempts ua domain delay))
 {
-      no strict 'refs';
-      *$key = sub
-      {
-            my $self = shift;
-      
-            return $self->{$key} = $_[0] if defined $_[0];
-            return $self->{$key};
-      }
+    no strict 'refs';
+    *$key = sub
+    {
+        my $self = shift;
+    
+        return $self->{$key} = $_[0] if defined $_[0];
+        return $self->{$key};
+    }
 }
 
 
 sub errno
 {
-      return $_[0]->{errno};
+    return $_[0]->{errno};
 }
 
 
 sub errstr
 {
-      return $_[0]->{errstr};
+    return $_[0]->{errstr};
 }
 
 
 sub try_upload
 {
-      my ($self, %opts) = @_;
-      
-      Carp::croak "Captcha file or content should be specified and exists"
-            if (!defined($opts{file}) && !defined($opts{content})) || (defined($opts{file}) && ! -e $opts{file});
-      
-      my $response = $self->{ua}->post
-            (
-                  "http://$self->{domain}/in.php",
-                  Content_Type => "form-data",
-                  Content      =>
-                  [
-                        key    => $self->{key},
-                        method => 'post',
-                        file   =>
-                        [
-                              defined($opts{file}) ?
-                                    (
-                                          delete $opts{file},
-                                          defined($opts{name}) ?
-                                                delete $opts{name}
-                                                :
-                                                undef
-                                    )
-                                    :
-                                    (
-                                          undef,
-                                          defined($opts{name}) ?
-                                                delete $opts{name}
-                                                :
-                                                $FNAME,
-                                          Content => delete $opts{content}
-                                    )
-                        ],
-                        %opts
-                  ]
-            );
-      
-      unless($response->is_success)
-      {
-            $self->{errno}  = 'HTTP_ERROR';
-            $self->{errstr} = $response->status_line;
-            return undef;
-      }
-      
-      my $captcha_id;
-      unless(($captcha_id) = $response->content =~ /OK\|(\d+)/)
-      {
-            $self->{errno}  = $response->content;
-            $self->{errstr} = $MESSAGES{ $self->{errno} };
-            return undef;
-      }
-      
-      return $captcha_id;
+    my ($self, %opts) = @_;
+    
+    Carp::croak "Captcha file or content should be specified and exists"
+        if (!defined($opts{file}) && !defined($opts{content})) || (defined($opts{file}) && ! -e $opts{file});
+    
+    my $response = $self->{ua}->post
+        (
+            "http://$self->{domain}/in.php",
+            Content_Type => "form-data",
+            Content    =>
+            [
+                key    => $self->{key},
+                method => 'post',
+                file   =>
+                [
+                    defined($opts{file}) ?
+                        (
+                            delete $opts{file},
+                            defined($opts{name}) ?
+                                delete $opts{name}
+                                :
+                                undef
+                        )
+                        :
+                        (
+                            undef,
+                            defined($opts{name}) ?
+                                delete $opts{name}
+                                :
+                                $FNAME,
+                            Content => delete $opts{content}
+                        )
+                ],
+                %opts
+            ]
+        );
+    
+    unless($response->is_success)
+    {
+        $self->{errno}  = 'HTTP_ERROR';
+        $self->{errstr} = $response->status_line;
+        return undef;
+    }
+    
+    my $captcha_id;
+    unless(($captcha_id) = $response->content =~ /OK\|(\d+)/)
+    {
+        $self->{errno}  = $response->content;
+        $self->{errstr} = $MESSAGES{ $self->{errno} };
+        return undef;
+    }
+    
+    return $captcha_id;
 }
 
 
 sub upload
 {
-      my ($self, %opts) = @_;
-      
-      my $start = time();
-      my $attempts = 0;
-      my $captcha_id;
-      
-      do
-      {
-            $attempts ++;
-            $captcha_id = $self->try_upload(%opts);
-      }
-      while ( !$captcha_id && 
-              ($self->{errno} eq 'ERROR_NO_SLOT_AVAILABLE' || $self->{errno} eq 'HTTP_ERROR') &&
-              (defined($self->{wait}) ? ( time() - $start ) < $self->{wait} : 1) &&
-              $attempts != $self->{attempts} &&
-              sleep( $self->{delay} )
-            );
+    my ($self, %opts) = @_;
+    
+    my $start = time();
+    my $attempts = 0;
+    my $captcha_id;
+    
+    do
+    {
+        $attempts ++;
+        $captcha_id = $self->try_upload(%opts);
+    }
+    while ( !$captcha_id && 
+          ($self->{errno} eq 'ERROR_NO_SLOT_AVAILABLE' || $self->{errno} eq 'HTTP_ERROR') &&
+          (defined($self->{wait}) ? ( time() - $start ) < $self->{wait} : 1) &&
+          $attempts != $self->{attempts} &&
+          sleep( $self->{delay} )
+        );
 
-      return $captcha_id;
+    return $captcha_id;
 }
 
 
 sub try_recognize
 {
-      my ($self, $id) = @_;
-      
-      Carp::croak "Captcha id should be specified" unless defined $id;
-      
-      my $response = $self->{ua}->get("http://$self->{domain}/res.php?key=$self->{key}&action=get&id=$id");
-      
-      unless($response->is_success)
-      {
-            $self->{errno}  = 'HTTP_ERROR';
-            $self->{errstr} = $response->status_line;
-            return undef;
-      }
-      
-      my $captcha_text;
-      unless(($captcha_text) = $response->content =~ /OK\|(.+)/)
-      {
-            $self->{errno}  = $response->content;
-            $self->{errstr} = $MESSAGES{ $self->{errno} };
-            return undef;
-      }
-      
-      return $captcha_text;
+    my ($self, $id) = @_;
+    
+    Carp::croak "Captcha id should be specified" unless defined $id;
+    
+    my $response = $self->{ua}->get("http://$self->{domain}/res.php?key=$self->{key}&action=get&id=$id");
+    
+    unless($response->is_success)
+    {
+        $self->{errno}  = 'HTTP_ERROR';
+        $self->{errstr} = $response->status_line;
+        return undef;
+    }
+    
+    my $captcha_text;
+    unless(($captcha_text) = $response->content =~ /OK\|(.+)/)
+    {
+        $self->{errno}  = $response->content;
+        $self->{errstr} = $MESSAGES{ $self->{errno} };
+        return undef;
+    }
+    
+    return $captcha_text;
 }
 
 
 sub recognize
 {
-      my ($self, $id) = @_;
-      
-      my $start = time();
-      my $captcha_text;
-      my $attempts = 0;
-      
-      do
-      {
-            $attempts ++;
-            sleep( $self->{delay} );
-            $captcha_text = $self->try_recognize($id);
-      }
-      while ( !$captcha_text &&
-              ($self->{errno} eq 'CAPCHA_NOT_READY' || $self->{errno} eq 'HTTP_ERROR') &&
-              (defined($self->{wait}) ? ( time() - $start ) < $self->{wait} : 1) &&
-              $attempts != $self->{attempts}
-            );
-              
-      return $captcha_text;
+    my ($self, $id) = @_;
+    
+    my $start = time();
+    my $captcha_text;
+    my $attempts = 0;
+    
+    do
+    {
+        $attempts ++;
+        sleep( $self->{delay} );
+        $captcha_text = $self->try_recognize($id);
+    }
+    while ( !$captcha_text &&
+          ($self->{errno} eq 'CAPCHA_NOT_READY' || $self->{errno} eq 'HTTP_ERROR') &&
+          (defined($self->{wait}) ? ( time() - $start ) < $self->{wait} : 1) &&
+          $attempts != $self->{attempts}
+        );
+          
+    return $captcha_text;
 }
 
 
 sub upload_and_recognize
 {
-      my ($self, %opts) = @_;
-      
-      my $captcha_id;
-      unless($captcha_id = $self->upload(%opts))
-      {
-            return undef;
-      }
-      
-      return $self->recognize($captcha_id);
+    my ($self, %opts) = @_;
+    
+    my $captcha_id;
+    unless($captcha_id = $self->upload(%opts))
+    {
+        return undef;
+    }
+    
+    return $self->recognize($captcha_id);
 }
 
 
 sub abuse
 {
-      my ($self, $id) = @_;
-      
-      Carp::croak "Captcha id should be specified" unless defined $id;
-      
-      my $response = $self->{ua}->get("http://$self->{domain}/res.php?key=$self->{key}&action=reportbad&id=$id");
-      
-      unless($response->is_success)
-      {
-            $self->{errno}  = 'HTTP_ERROR';
-            $self->{errstr} = $response->status_line;
-            return undef;
-      }
-      
-      unless($response->content eq 'OK_REPORT_RECORDED')
-      {
-            $self->{errno}  = $response->content;
-            $self->{errstr} = $MESSAGES{ $self->{errno} };
-            return undef;
-      }
-      
-      return 1;
+    my ($self, $id) = @_;
+    
+    Carp::croak "Captcha id should be specified" unless defined $id;
+    
+    my $response = $self->{ua}->get("http://$self->{domain}/res.php?key=$self->{key}&action=reportbad&id=$id");
+    
+    unless($response->is_success)
+    {
+        $self->{errno}  = 'HTTP_ERROR';
+        $self->{errstr} = $response->status_line;
+        return undef;
+    }
+    
+    unless($response->content eq 'OK_REPORT_RECORDED')
+    {
+        $self->{errno}  = $response->content;
+        $self->{errstr} = $MESSAGES{ $self->{errno} };
+        return undef;
+    }
+    
+    return 1;
 }
 
 
 sub balance
 {
-      my $self = shift;
-      
-      my $response = $self->{ua}->get("http://$self->{domain}/res.php?key=$self->{key}&action=getbalance");
-      
-      unless($response->is_success)
-      {
-            $self->{errno}  = 'HTTP_ERROR';
-            $self->{errstr} = $response->status_line;
-            return undef;
-      }
-      
-      if($response->content =~ /^ERROR_/)
-      {
-            $self->{errno}  = $response->content;
-            $self->{errstr} = $MESSAGES{ $self->{errno} };
-            return undef;
-      }
-      
-      return $response->content;
+    my $self = shift;
+    
+    my $response = $self->{ua}->get("http://$self->{domain}/res.php?key=$self->{key}&action=getbalance");
+    
+    unless($response->is_success)
+    {
+        $self->{errno}  = 'HTTP_ERROR';
+        $self->{errstr} = $response->status_line;
+        return undef;
+    }
+    
+    if($response->content =~ /^ERROR_/)
+    {
+        $self->{errno}  = $response->content;
+        $self->{errstr} = $MESSAGES{ $self->{errno} };
+        return undef;
+    }
+    
+    return $response->content;
+}
+
+
+sub _name_by_signature
+{
+    if ($_[0] =~ /^\x47\x49\x46\x38(?:\x37|\x39)\x61/)
+    {
+        return 'captcha.gif';
+    }
+
+    if ($_[0] =~ /^\x89\x50\x4E\x47\x0D\x0A\x1A\x0A/)
+    {
+        return 'captcha.png';
+    }
+
+    if ($_[0] =~ /^\xFF\xD8\xFF\xE0..\x4A\x46\x49\x46\x00/)
+    {
+        return 'captcha.jpg';
+    }
+    
+    return $FNAME;
 }
 
 
@@ -428,7 +449,23 @@ This method gets or sets maximum number of attempts. See above.
 =item $recognizer->errno
 
 This method gets an error from previous unsuccessful operation. The Error is returned as a string constant
-associated with this error type.
+associated with this error type. It should be one of the
+
+  'ERROR_KEY_DOES_NOT_EXIST'
+  'ERROR_WRONG_USER_KEY'
+  'ERROR_NO_SLOT_AVAILABLE'
+  'ERROR_ZERO_CAPTCHA_FILESIZE'
+  'ERROR_TOO_BIG_CAPTCHA_FILESIZE'
+  'ERROR_WRONG_FILE_EXTENSION'
+  'ERROR_IP_NOT_ALLOWED'
+  'ERROR_WRONG_ID_FORMAT'
+  'ERROR_NO_SUCH_CAPCHA_ID'
+  'ERROR_URL_METHOD_FORBIDDEN'
+  'ERROR_IMAGE_IS_NOT_PNG'
+  'ERROR_IMAGE_IS_NOT_JPEG'
+  'ERROR_IMAGE_IS_NOT_GIF'
+  'ERROR_ZERO_BALANCE'
+  'HTTP_ERROR'
 
 =item $recognizer->errstr
 
