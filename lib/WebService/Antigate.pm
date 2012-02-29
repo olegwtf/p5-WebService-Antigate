@@ -7,9 +7,9 @@ use Carp ();
 our $VERSION = '0.03';
 
 our $DOMAIN = 'antigate.com'; # service domain often changes because of the abuse
-our $WAIT   = 220;        # default time that recognize() or upload() can work
-our $DELAY  = 5;          # sleep time before retry while uploading or recognizing captcha
-our $FNAME  = 'captcha.jpg';  # default name of the uploaded captcha if uploading from the variable used
+our $WAIT   = 220;            # default time that recognize() or upload() can work
+our $DELAY  = 5;              # sleep time before retry while uploading or recognizing captcha
+our $FNAME  = 'captcha.jpg';  # default name of the uploaded captcha if name not specified and can't be determined
 
 
 my %MESSAGES = 
@@ -102,7 +102,10 @@ sub try_upload
                             defined($opts{name}) ?
                                 delete $opts{name}
                                 :
-                                undef
+                                $opts{file} !~ /\..{1,5}$/ ? # filename without extension
+                                    _name_by_file_signature($opts{file})
+                                    :
+                                    undef
                         )
                         :
                         (
@@ -110,7 +113,7 @@ sub try_upload
                             defined($opts{name}) ?
                                 delete $opts{name}
                                 :
-                                $FNAME,
+                                _name_by_signature($opts{content}),
                             Content => delete $opts{content}
                         )
                 ],
@@ -297,6 +300,15 @@ sub _name_by_signature
 }
 
 
+sub _name_by_file_signature
+{
+    open my $fh, '<:raw', $_[0] or return _name_by_signature('');
+    sysread($fh, my $buf, 20);
+    close $fh;
+    return _name_by_signature($buf);
+}
+
+
 1;
 
 __END__
@@ -449,7 +461,7 @@ This method gets or sets maximum number of attempts. See above.
 =item $recognizer->errno
 
 This method gets an error from previous unsuccessful operation. The Error is returned as a string constant
-associated with this error type. It should be one of the
+associated with this error type. It should be one of the:
 
   'ERROR_KEY_DOES_NOT_EXIST'
   'ERROR_WRONG_USER_KEY'
@@ -481,17 +493,19 @@ This method tries to upload captcha image to the service. Here you can use the f
    file            undef        path to the file with captcha
    content         undef        captcha content
    name            undef        represented name of the file with captcha
-   phrase          0            1 if captcha text have 2-4 words
+   phrase          0            1 if captcha text has 2-4 words
    regsense        0            1 if that captcha text is case sensitive
-   numeric         0            1 if that captcha text contains only digits, 2 if captcha text have no digits
+   numeric         0            1 if that captcha text contains only digits, 2 if captcha text has no digits
    calc            0            1 if that digits on the captcha should be summed up
    min_len         0            minimum length of the captcha text (0..20)
    max_len         0            maximum length of the captcha text (0..20), 0 - no limits
    is_russian      0            1 - russian text only, 2 - russian or english, 0 - does not matter
    
 You must specify either `file' option or `content'. Other options are facultative. If you want to upload captcha from variable
-(`content' option) instead from file you must specify the name of the file with `name' option. Otherwise $WebService::Antigate::FNAME
-will be used as captcha name. You also can change file name with `name' option if you uploading captcha from file.
+(`content' option) instead from file, you must specify the name of the file with `name' option. Antigate webservice determines
+file format by extension, so it is important to specify proper extension in file name. If `file' option used and file name has
+no extension and `name' was not specified or if `content' option used and `name' was not specified, this module will try to
+specify proper name by file signature. If file has unknown signature $WebService::Antigate::FNAME will be used as file name.
 On success captcha id is returned. On failure returns undef and sets errno and errstr.
 
 =item $recognizer->upload(%options)
@@ -537,7 +551,7 @@ $WebService::Antigate::WAIT     = 220;            # default time that recognize(
 
 $WebService::Antigate::DELAY    = 5;              # sleep time before retry while uploading or recognizing captcha
 
-$WebService::Antigate::FNAME    = 'captcha.jpg';  # default name of the uploaded captcha if uploading from the variable used
+$WebService::Antigate::FNAME    = 'captcha.jpg';  # default name of the uploaded captcha if name not specified and can't be determined
 
 =head1 SEE ALSO
 
