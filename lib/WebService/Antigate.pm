@@ -29,7 +29,9 @@ my %MESSAGES =
     'ERROR_IMAGE_IS_NOT_GIF'         => 'captcha is not correct gif file',
     'ERROR_ZERO_BALANCE'             => 'you have a zero balance',
     'CAPCHA_NOT_READY'               => 'captcha is not recognized yet',
-    'OK_REPORT_RECORDED'             => 'your abuse recorded'
+    'OK_REPORT_RECORDED'             => 'your abuse recorded',
+    'ERROR_CAPTCHA_UNSOLVABLE'       => 'captcha can\'t be recognized',
+    'ERROR_BAD_DUPLICATES'           => 'captcha duplicates limit reached'
 );
 
 
@@ -477,6 +479,8 @@ associated with this error type. It should be one of the:
   'ERROR_IMAGE_IS_NOT_JPEG'
   'ERROR_IMAGE_IS_NOT_GIF'
   'ERROR_ZERO_BALANCE'
+  'ERROR_CAPTCHA_UNSOLVABLE'
+  'ERROR_BAD_DUPLICATES'
   'HTTP_ERROR'
 
 =item $recognizer->errstr
