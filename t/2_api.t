@@ -21,6 +21,8 @@ if (index($recognizer->ua->get("http://$host:$port")->content, 'squid') != -1) {
 	kill 15, $pid;
 }
 
+is($recognizer->upload(file => 't/captcha.jpg'), CAPTCHA_ID, '->upload(captcha.jpg)');
+is($recognizer->last_captcha_id, CAPTCHA_ID, '->last_captcha_id');
 is($recognizer->recognize(CAPTCHA_ID), CAPTCHA_TEXT, '->recognize(CAPTCHA_ID)');
 is($recognizer->recognize(CAPTCHA_ID+1), undef, '->recognize(CAPTCHA_ID+1)');
 
@@ -56,37 +58,42 @@ sub make_api_server {
 				}
 			}
 			
-			my ($path, $query) = $headers =~ /GET\s+([^?]+)\?(\S+)/
-				or next;
-			my %params;
-			foreach my $kv (split '&', $query) {
-				my ($k, $v) = split '=', $kv;
-				$params{$k} = $v;
-			}
-			
 			my $response;
-			if ($params{key} ne API_KEY) {
-				$response = 'ERROR_KEY_DOES_NOT_EXIST';
+			if ($headers =~ /^POST.+in\.php/) {
+				$response = 'OK|'.CAPTCHA_ID;
 			}
 			else {
-				if ($params{action} eq 'get') {
-					if ($params{id} == CAPTCHA_ID) {
-						$response = 'OK|' . CAPTCHA_TEXT;
-					}
-					else {
-						$response = 'ERROR_NO_SUCH_CAPCHA_ID';
-					}
+				my ($path, $query) = $headers =~ /GET\s+([^?]+)\?(\S+)/
+					or next;
+				my %params;
+				foreach my $kv (split '&', $query) {
+					my ($k, $v) = split '=', $kv;
+					$params{$k} = $v;
 				}
-				elsif ($params{action} eq 'reportbad') {
-					if ($params{id} == CAPTCHA_ID) {
-						$response = 'OK_REPORT_RECORDED';
-					}
-					else {
-						$response = 'ERROR_NO_SUCH_CAPCHA_ID';
-					}
+				
+				if ($params{key} ne API_KEY) {
+					$response = 'ERROR_KEY_DOES_NOT_EXIST';
 				}
-				elsif ($params{action} eq 'getbalance') {
-					$response = BALANCE;
+				else {
+					if ($params{action} eq 'get') {
+						if ($params{id} == CAPTCHA_ID) {
+							$response = 'OK|' . CAPTCHA_TEXT;
+						}
+						else {
+							$response = 'ERROR_NO_SUCH_CAPCHA_ID';
+						}
+					}
+					elsif ($params{action} eq 'reportbad') {
+						if ($params{id} == CAPTCHA_ID) {
+							$response = 'OK_REPORT_RECORDED';
+						}
+						else {
+							$response = 'ERROR_NO_SUCH_CAPCHA_ID';
+						}
+					}
+					elsif ($params{action} eq 'getbalance') {
+						$response = BALANCE;
+					}
 				}
 			}
 			

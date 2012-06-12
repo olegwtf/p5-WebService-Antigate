@@ -138,7 +138,7 @@ sub try_upload
         return undef;
     }
     
-    return $captcha_id;
+    return $self->{last_captcha_id} = $captcha_id;
 }
 
 
@@ -228,6 +228,13 @@ sub upload_and_recognize
     }
     
     return $self->recognize($captcha_id);
+}
+
+
+sub last_captcha_id
+{
+    my ($self) = @_;
+    return $self->{last_captcha_id};
 }
 
 
@@ -486,7 +493,7 @@ associated with this error type. It should be one of the:
 =item $recognizer->errstr
 
 This method gets an error from previous unsuccessful operation. The Error is returned as a string which
-describs the problem.
+describes the problem.
 
 =item $recognizer->try_upload(%options)
 
@@ -534,6 +541,11 @@ undef and sets errno and errstr.
 This method uploads and recognizes captcha in one step. It is easier but less flexible. Parameter %options is identical
 with the one in method try_upload(). On success will return recognized captcha text. On failure returns undef and sets
 errno and errstr.
+
+=item $recognizer->last_captcha_id
+
+This method returns id of the last successfully uploaded captcha. This can be useful when you used upload_and_recognize()
+and then want to use some method that accepts captcha id as argument (abuse() for example).
 
 =item $recognizer->abuse($captcha_id)
 
