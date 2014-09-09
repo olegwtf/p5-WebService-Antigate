@@ -88,6 +88,7 @@ sub try_upload
     Carp::croak "Captcha file or content should be specified and exists"
         if (!defined($opts{file}) && !defined($opts{content})) || (defined($opts{file}) && ! -e $opts{file});
     
+    my $file;
     my $response = $self->{ua}->post
         (
             "http://$self->{domain}/in.php",
@@ -100,12 +101,12 @@ sub try_upload
                 [
                     defined($opts{file}) ?
                         (
-                            delete $opts{file},
+                            $file = delete $opts{file},
                             defined($opts{name}) ?
                                 delete $opts{name}
                                 :
-                                $opts{file} !~ /\..{1,5}$/ ? # filename without extension
-                                    _name_by_file_signature($opts{file})
+                                $file !~ /\..{1,5}$/ ? # filename without extension
+                                    _name_by_file_signature($file)
                                     :
                                     undef
                         )
