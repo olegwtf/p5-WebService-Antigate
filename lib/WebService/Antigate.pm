@@ -512,6 +512,8 @@ This method tries to upload captcha image to the service. Here you can use the f
    min_len         0            minimum length of the captcha text (0..20)
    max_len         0            maximum length of the captcha text (0..20), 0 - no limits
    is_russian      0            1 - russian text only, 2 - russian or english, 0 - does not matter
+   soft_id         undef        id of your application to earn money
+   header_acao     0            1 if server should return C<Access-Control-Allow-Origin: *> header
    
 You must specify either `file' option or `content'. Other options are facultative. If you want to upload captcha from variable
 (`content' option) instead from file, you must specify the name of the file with `name' option. Antigate webservice determines
@@ -519,6 +521,9 @@ file format by extension, so it is important to specify proper extension in file
 no extension and `name' was not specified or if `content' option used and `name' was not specified, this module will try to
 specify proper name by file signature. If file has unknown signature $WebService::Antigate::FNAME will be used as file name.
 On success captcha id is returned. On failure returns undef and sets errno and errstr.
+
+This list of settings supported by the service may be outdated. But you can specify any other options supported by the service
+here without any changes of the module.
 
 =item $recognizer->upload(%options)
 
