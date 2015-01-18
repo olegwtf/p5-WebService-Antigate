@@ -4,7 +4,7 @@ use strict;
 use LWP::UserAgent ();
 use Carp ();
 
-our $VERSION = '0.05';
+our $VERSION = '0.06';
 
 our $DOMAIN = 'antigate.com'; # service domain often changes because of the abuse
 our $WAIT   = 220;            # default time that recognize() or upload() can work

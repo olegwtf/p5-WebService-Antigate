@@ -1,5 +1,9 @@
 Revision history for Perl extension WebService::Antigate.
 
+0.06  Sun Jan 18 15:15:50 NOVT 2015
+      - mention some new settings supported by API
+      - fix content-type detection for files without extension
+
 0.05  Tue Jun 12 17:46:31 2012
       - few new error codes added
       - last_captcha_id() method implemented
