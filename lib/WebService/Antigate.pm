@@ -513,7 +513,7 @@ This method tries to upload captcha image to the service. Here you can use the f
    max_len         0            maximum length of the captcha text (0..20), 0 - no limits
    is_russian      0            1 - russian text only, 2 - russian or english, 0 - does not matter
    soft_id         undef        id of your application to earn money
-   header_acao     0            1 if server should return C<Access-Control-Allow-Origin: *> header
+   header_acao     0            1 if server should return "Access-Control-Allow-Origin: *" header
    
 You must specify either `file' option or `content'. Other options are facultative. If you want to upload captcha from variable
 (`content' option) instead from file, you must specify the name of the file with `name' option. Antigate webservice determines
