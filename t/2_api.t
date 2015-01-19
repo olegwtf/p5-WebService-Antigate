@@ -1,8 +1,15 @@
 #!/usr/bin/env perl
 
+BEGIN {
+	$ENV{http_proxy} = $ENV{HTTP_PROXY} = 
+	$ENV{https_proxy} = $ENV{HTTPS_PROXY} = 
+	$ENV{all_proxy} = $ENV{ALL_PROXY} = undef;
+}
+
 use strict;
 use Test::More;
 use WebService::Antigate;
+use Net::HTTP;
 use IO::Socket;
 
 use constant API_KEY      => 'd41d8cd98f00b204e9800998ecf8427e';
@@ -14,12 +21,12 @@ if( $^O eq 'MSWin32' ) {
 	plan skip_all => 'Windows still does not support fork()';
 }
 
+if (%IO::Socket::IP:: && IO::Socket::IP->VERSION < 0.35) {
+	plan skip_all => 'Bugous IO::Socket::IP detected';
+}
+
 my ($pid, $host, $port) = make_api_server();
 my $recognizer = WebService::Antigate->new(key => API_KEY, domain => "$host:$port", delay => 1);
-if (index($recognizer->ua->get("http://$host:$port")->content, 'squid') != -1) {
-	plan skip_all => 'You are behind squid';
-	kill 15, $pid;
-}
 
 is($recognizer->upload(file => 't/captcha.jpg'), CAPTCHA_ID, '->upload(captcha.jpg)');
 is($recognizer->last_captcha_id, CAPTCHA_ID, '->last_captcha_id');
