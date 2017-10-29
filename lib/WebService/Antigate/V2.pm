@@ -198,12 +198,14 @@ This class has all methods described in L<WebService::Antigate>. Specific change
 
 =item WebService::Antigate::V2->new( %options )
 
-This constructor changes some options defaults:
+Constructor changes some options defaults:
 
    KEY                  DEFAULT                                                OPTIONAL
    -----------          --------------------                                 ---------------
    scheme                https                                                  yes
    subdomain             api.                                                   yes
+
+For other options see L<WebService::Antigate>
 
 =item $recognizer->try_upload(%options)
 
