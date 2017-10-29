@@ -5,6 +5,16 @@ use JSON::PP;
 use MIME::Base64;
 use parent 'WebService::Antigate';
 
+sub new {
+	my ($class, %args) = @_;
+	
+	# change some defaults
+	$args{scheme} = 'https'   unless defined $args{scheme};
+	$args{subdomain} = 'api.' unless defined $args{subdomain};
+	
+	$class->SUPER::new(%args);
+}
+
 sub try_upload {
 	my ($self, %opts) = @_;
 	
@@ -26,7 +36,7 @@ sub try_upload {
 	}
 	
 	my $response = $self->{ua}->post(
-		"https://api.$self->{domain}/createTask",
+		"$self->{scheme}://$self->{subdomain}$self->{domain}/createTask",
 		Content => encode_json {
 			clientKey => $self->{key},
 			exists $opts{softId} ? ( softId => delete $opts{softId} ) : (),
@@ -59,7 +69,7 @@ sub try_recognize {
     Carp::croak "Captcha id should be specified" unless defined $id;
 	
 	my $response = $self->{ua}->post(
-		"https://api.$self->{domain}/getTaskResult",
+		"$self->{scheme}://$self->{subdomain}$self->{domain}/getTaskResult",
 		Content => encode_json {
 			clientKey => $self->{key},
 			taskId    => $id
@@ -98,7 +108,7 @@ sub abuse {
     Carp::croak "Captcha id should be specified" unless defined $id;
 	
 	my $response = $self->{ua}->post(
-		"https://api.$self->{domain}/reportIncorrectImageCaptcha",
+		"$self->{scheme}://$self->{subdomain}$self->{domain}/reportIncorrectImageCaptcha",
 		Content => encode_json {
 			clientKey => $self->{key},
 			taskId    => $id
@@ -131,7 +141,7 @@ sub balance {
 	my $self = shift;
 	
 	my $response = $self->{ua}->post(
-		"https://api.$self->{domain}/getBalance",
+		"$self->{scheme}://$self->{subdomain}$self->{domain}/getBalance",
 		Content => encode_json {
 			clientKey => $self->{key},
 		}
@@ -182,9 +192,18 @@ API documentation available at L<https://anticaptcha.atlassian.net/wiki/spaces/A
 
 =head1 METHODS
 
-This class has all methods described in L<WebService::Antigate>. Specific options for C<try_upload> listed below.
+This class has all methods described in L<WebService::Antigate>. Specific changes listed below.
 
 =over
+
+=item WebService::Antigate::V2->new( %options )
+
+This constructor changes some options defaults:
+
+   KEY                  DEFAULT                                                OPTIONAL
+   -----------          --------------------                                 ---------------
+   scheme                https                                                  yes
+   subdomain             api.                                                   yes
 
 =item $recognizer->try_upload(%options)
 

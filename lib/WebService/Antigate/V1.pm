@@ -33,7 +33,7 @@ sub try_upload {
     my $file;
     my $response = $self->{ua}->post
         (
-            "http://$self->{domain}/in.php",
+            "$self->{scheme}://$self->{subdomain}$self->{domain}/in.php",
             Content_Type => "form-data",
             Content    =>
             [
@@ -48,7 +48,7 @@ sub try_upload {
                                 delete $opts{name}
                                 :
                                 $file !~ /\..{1,5}$/ ? # filename without extension
-                                    _name_by_file_signature($file)
+                                    $self->_name_by_file_signature($file)
                                     :
                                     undef
                         )
@@ -58,7 +58,7 @@ sub try_upload {
                             defined($opts{name}) ?
                                 delete $opts{name}
                                 :
-                                _name_by_signature($opts{content}),
+                                $self->_name_by_signature($opts{content}),
                             Content => delete $opts{content}
                         )
                 ],
@@ -87,7 +87,7 @@ sub try_recognize {
     
     Carp::croak "Captcha id should be specified" unless defined $id;
     
-    my $response = $self->{ua}->get("http://$self->{domain}/res.php?key=$self->{key}&action=get&id=$id");
+    my $response = $self->{ua}->get("$self->{scheme}://$self->{subdomain}$self->{domain}/res.php?key=$self->{key}&action=get&id=$id");
     
     unless($response->is_success) {
         $self->{errno}  = 'HTTP_ERROR';
@@ -110,7 +110,7 @@ sub abuse {
     
     Carp::croak "Captcha id should be specified" unless defined $id;
     
-    my $response = $self->{ua}->get("http://$self->{domain}/res.php?key=$self->{key}&action=reportbad&id=$id");
+    my $response = $self->{ua}->get("$self->{scheme}://$self->{subdomain}$self->{domain}/res.php?key=$self->{key}&action=reportbad&id=$id");
     
     unless($response->is_success) {
         $self->{errno}  = 'HTTP_ERROR';
@@ -131,7 +131,7 @@ sub abuse {
 sub balance {
     my $self = shift;
     
-    my $response = $self->{ua}->get("http://$self->{domain}/res.php?key=$self->{key}&action=getbalance");
+    my $response = $self->{ua}->get("$self->{scheme}://$self->{subdomain}$self->{domain}/res.php?key=$self->{key}&action=getbalance");
     
     unless($response->is_success) {
         $self->{errno}  = 'HTTP_ERROR';
@@ -176,7 +176,7 @@ This is subclass of L<WebService::Antigate> which implements version 1 of API.
 
 =head1 METHODS
 
-This class has all methods described in L<WebService::Antigate>. Specific options for C<try_upload> listed below.
+This class has all methods described in L<WebService::Antigate>. Specific changes listed below.
 
 =over
 

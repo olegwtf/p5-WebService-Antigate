@@ -28,6 +28,8 @@ sub new {
     $self->{ua}          = $args{ua}     || LWP::UserAgent->new();
     $self->{domain}      = $args{domain} || $DOMAIN;
     $self->{delay}       = $args{delay}  || $DELAY;
+	$self->{scheme}      = $args{scheme} || 'http';
+	$self->{subdomain}   = $args{subdomain};
 	$self->{api_version} = $args{api_version} || 1;
     
     $self->{wait} = $WAIT unless defined($self->{wait}) || defined($self->{attempts});
@@ -37,7 +39,7 @@ sub new {
 }
 
 # generate sub's for get/set object properties using closure
-foreach my $key (qw(key wait attempts ua domain delay)) {
+foreach my $key (qw(key wait attempts ua scheme domain subdomain delay)) {
     no strict 'refs';
     *$key = sub {
         my $self = shift;
@@ -116,17 +118,17 @@ sub last_captcha_id {
 }
 
 sub _name_by_signature {
-    if ($_[0] =~ /^\x47\x49\x46\x38(?:\x37|\x39)\x61/)
+    if ($_[1] =~ /^\x47\x49\x46\x38(?:\x37|\x39)\x61/)
     {
         return 'captcha.gif';
     }
 
-    if ($_[0] =~ /^\x89\x50\x4E\x47\x0D\x0A\x1A\x0A/)
+    if ($_[1] =~ /^\x89\x50\x4E\x47\x0D\x0A\x1A\x0A/)
     {
         return 'captcha.png';
     }
 
-    if ($_[0] =~ /^\xFF\xD8\xFF\xE0..\x4A\x46\x49\x46\x00/)
+    if ($_[1] =~ /^\xFF\xD8\xFF\xE0..\x4A\x46\x49\x46\x00/)
     {
         return 'captcha.jpg';
     }
@@ -135,10 +137,12 @@ sub _name_by_signature {
 }
 
 sub _name_by_file_signature {
-    open my $fh, '<:raw', $_[0] or return _name_by_signature('');
+    my $self = shift;
+	
+	open my $fh, '<:raw', $_[0] or return $self->_name_by_signature('');
     sysread($fh, my $buf, 20);
     close $fh;
-    return _name_by_signature($buf);
+    return $self->_name_by_signature($buf);
 }
 
 1;
@@ -245,7 +249,9 @@ Key / value pairs can be passed as an argument to specify the initial state. The
    key                   undef                                                 NO
    api_version           1                                                     yes
    ua                    LWP::UserAgent->new                                   yes
+   scheme                http                                                  yes
    domain                $WebService::Antigate::DOMAIN = 'anti-captcha.com'    yes
+   subdomain             undef                                                 yes
    wait                  $WebService::Antigate::WAIT = 220                     yes
    attempts              undef                                                 yes
    delay                 $WebService::Antigate::DELAY = 5                      yes
@@ -255,7 +261,9 @@ Options description:
    key         - your service private key
    api_version - version of API to use: 1 or 2
    ua          - LWP::UserAgent object used to upload captcha and receive the result (captcha recognition)
+   scheme      - http or https, default value may be different in subclasses
    domain      - current domain of the service, can be changed in the future
+   subdomain   - current subdomain of domain of the service (with dot at the end), default value may be different in subclasses
    wait        - maximum waiting time until captcha will be accepted  ( upload() ) or recognized ( recognize() ) by the service
    delay       - delay time before next attempt of captcha uploading or recognition after previous failure
    attempts    - maximum number of attempts that we can try_upload() or try_recognize()
@@ -281,11 +289,23 @@ Example:
 
    $recognizer->ua->proxy(http => 'http://localhost:8080');
 
+=item $recognizer->scheme
+
+=item $recognizer->scheme($scheme)
+
+This method gets or sets API url scheme.
+
 =item $recognizer->domain
 
 =item $recognizer->domain($domain)
 
 This method gets or sets the domain of the service.
+
+=item $recognizer->subdomain
+
+=item $recognizer->subdomain($domain)
+
+This method gets or sets subdomain of the service (with dot at the end).
 
 =item $recognizer->wait
 
@@ -397,7 +417,7 @@ L<WebService::Antigate::V1>, L<WebService::Antigate::V2>
 
 =head1 COPYRIGHT
 
-Copyright 2010-2011 Oleg G <oleg@cpan.org>.
+Oleg G <oleg@cpan.org>.
 
 This library is free software; you can redistribute it and/or
 modify it under the same terms as Perl itself.
