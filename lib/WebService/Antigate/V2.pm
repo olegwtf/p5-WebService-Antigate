@@ -217,4 +217,15 @@ And so on for other types
 
 =back
 
+=head1 SEE ALSO
+
+L<WebService::Antigate>, L<WebService::Antigate::V1>
+
+=head1 COPYRIGHT
+
+Oleg G <oleg@cpan.org>.
+
+This library is free software; you can redistribute it and/or
+modify it under the same terms as Perl itself.
+
 =cut

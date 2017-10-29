@@ -209,8 +209,6 @@ WebService::Antigate - Recognition of captches using antigate.com service (now a
 
  print "Recognized captcha is: ", $captcha, "\n";
 
-=back
-
 =item Using API v2 to recognize recaptcha
 
   use WebService::Antigate;
