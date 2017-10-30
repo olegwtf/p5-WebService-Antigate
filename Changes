@@ -1,5 +1,8 @@
 Revision history for Perl extension WebService::Antigate.
 
+0.10  Mon Oct 30 19:19:45 +07 2017
+      - POD fixes
+
 0.09  Sun Oct 29 21:40:40 DST 2017
       - fix "undefined subroutine _name_by_signature ..." error, which may be arised in previous release
       - POD fixes
