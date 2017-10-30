@@ -214,9 +214,9 @@ Each type has specific options which may be passed to this method: L<https://ant
 
 Also some common options available, like C<softId> and C<languagePool>, which also may be passed: L<https://anticaptcha.atlassian.net/wiki/spaces/API/pages/5079073/createTask+captcha+task+creating>
 
-How to recognize normal captcha from image:
+How to upload normal captcha from image:
 
-	print $recognizer->try_recognize(
+	print $recognizer->try_upload(
 		file => "/tmp/captcha.jpeg" # or content => "binary data",
 		# and any options supported by this type you need
 		languagePool => "en",
@@ -225,9 +225,9 @@ How to recognize normal captcha from image:
 		# type => 'ImageToTextTask' # you may specify it or not, because when `file' or `content' options detected it will be added automatically
 	);
 
-How to recognize recaptcha:
+How to upload recaptcha:
 
-	print $recognizer->try_recognize(
+	print $recognizer->try_upload(
 		type         => 'NoCaptchaTaskProxyless', # here you need to specify type
 		websiteURL   => "https://www.google.com/",
 		websiteKey   => "6LeZhwoTAAAAAP51ukBEOocjtdKGRDei9wFxFSpm",
