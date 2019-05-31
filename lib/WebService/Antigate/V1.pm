@@ -67,7 +67,7 @@ sub try_upload {
                         %opts
                     ]
                   )
-                : \%opts
+                : { key => $self->{key}, %opts }
         );
     
     unless($response->is_success) {
